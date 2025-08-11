@@ -16,6 +16,7 @@ let
       image,
       params,
       initrd,
+      dtb ? "",
     }:
     ''
       menuentry '${name}' --class ${class} {
@@ -24,6 +25,7 @@ let
 
         linux ${image} \''${isoboot} ${params}
         initrd ${initrd}
+        ${lib.optionalString (dtb != "") "devicetree ${dtb}"}
       }
     '';
 
@@ -46,6 +48,9 @@ let
         params = "init=${cfg.system.build.toplevel}/init ${toString cfg.boot.kernelParams} ${toString params}";
         image = "/boot/${cfg.boot.kernelPackages.kernel + "/" + cfg.system.boot.loader.kernelFile}";
         initrd = "/boot/${cfg.system.build.initialRamdisk + "/" + cfg.system.boot.loader.initrdFile}";
+        dtb = lib.optionalString (cfg.hardware.deviceTree.enable) "/boot/${
+          cfg.hardware.deviceTree.dtbSource + "/" + cfg.hardware.deviceTree.name
+        }";
         class = "installer";
       };
     in
@@ -922,6 +927,12 @@ in
             {
               source = cfg.system.build.initialRamdisk + "/" + cfg.system.boot.loader.initrdFile;
               target = "/boot/" + cfg.system.build.initialRamdisk + "/" + cfg.system.boot.loader.initrdFile;
+            }
+          ])
+          ++ lib.optionals (cfg.isoImage.showConfiguration && cfg.hardware.deviceTree.enable) ([
+            {
+              source = cfg.hardware.deviceTree.dtbSource + "/" + cfg.hardware.deviceTree.name;
+              target = "/boot/" + cfg.hardware.deviceTree.dtbSource + "/" + cfg.hardware.deviceTree.name;
             }
           ])
           ++ lib.concatLists (
